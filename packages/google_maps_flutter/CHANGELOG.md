@@ -1,3 +1,7 @@
+## 0.5.23
+
+* Add dummy map initialization
+
 ## 0.5.22
 
 * Add liteModeEnabled option.
