@@ -92,7 +92,9 @@ class GoogleMap extends StatefulWidget {
   /// True if the map view should respond to zoom gestures.
   final bool zoomGesturesEnabled;
 
-  /// True if the map view should be in lite mode. Android only. See https://developers.google.com/maps/documentation/android-sdk/lite#overview_of_lite_mode for more details.
+  /// True if the map view should be in lite mode. Android only.
+  ///
+  /// See https://developers.google.com/maps/documentation/android-sdk/lite#overview_of_lite_mode for more details.
   final bool liteModeEnabled;
 
   /// True if the map view should respond to tilt gestures.
@@ -404,7 +406,11 @@ class _GoogleMapOptions {
     this.indoorViewEnabled,
     this.trafficEnabled,
     this.buildingsEnabled,
-  });
+  }) {
+    assert(liteModeEnabled == null ||
+        !liteModeEnabled ||
+        (liteModeEnabled && Platform.isAndroid));
+  }
 
   static _GoogleMapOptions fromWidget(GoogleMap map) {
     return _GoogleMapOptions(
@@ -481,9 +487,6 @@ class _GoogleMapOptions {
     addIfNonNull('tiltGesturesEnabled', tiltGesturesEnabled);
     addIfNonNull('zoomGesturesEnabled', zoomGesturesEnabled);
     addIfNonNull('liteModeEnabled', liteModeEnabled);
-    if (liteModeEnabled != null && liteModeEnabled && !Platform.isAndroid) {
-      print('Warning: liteModeEnabled is Android only');
-    }
     addIfNonNull('trackCameraPosition', trackCameraPosition);
     addIfNonNull('myLocationEnabled', myLocationEnabled);
     addIfNonNull('myLocationButtonEnabled', myLocationButtonEnabled);
