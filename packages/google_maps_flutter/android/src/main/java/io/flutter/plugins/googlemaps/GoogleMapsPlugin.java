@@ -6,15 +6,22 @@ package io.flutter.plugins.googlemaps;
 
 import android.app.Activity;
 import android.app.Application;
+import android.app.FragmentManager;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.DefaultLifecycleObserver;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleOwner;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.MapFragment;
+import com.google.android.gms.maps.OnMapReadyCallback;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.embedding.engine.plugins.activity.ActivityAware;
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
 import io.flutter.embedding.engine.plugins.lifecycle.FlutterLifecycleAdapter;
+import io.flutter.plugin.common.BinaryMessenger;
+import io.flutter.plugin.common.MethodCall;
+import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -28,7 +35,8 @@ public class GoogleMapsPlugin
     implements Application.ActivityLifecycleCallbacks,
         FlutterPlugin,
         ActivityAware,
-        DefaultLifecycleObserver {
+        DefaultLifecycleObserver,
+        MethodChannel.MethodCallHandler {
   static final int CREATED = 1;
   static final int STARTED = 2;
   static final int RESUMED = 3;
@@ -39,6 +47,8 @@ public class GoogleMapsPlugin
   private int registrarActivityHashCode;
   private FlutterPluginBinding pluginBinding;
   private Lifecycle lifecycle;
+  private FragmentManager fragmentManager;
+  private MethodChannel methodChannel;
 
   private static final String VIEW_TYPE = "plugins.flutter.io/google_maps";
 
@@ -48,7 +58,8 @@ public class GoogleMapsPlugin
       // We stop the registration process as this plugin is foreground only.
       return;
     }
-    final GoogleMapsPlugin plugin = new GoogleMapsPlugin(registrar.activity());
+    final GoogleMapsPlugin plugin =
+        new GoogleMapsPlugin(registrar.activity(), registrar.messenger());
     registrar.activity().getApplication().registerActivityLifecycleCallbacks(plugin);
     registrar
         .platformViewRegistry()
@@ -64,11 +75,17 @@ public class GoogleMapsPlugin
   @Override
   public void onAttachedToEngine(FlutterPluginBinding binding) {
     pluginBinding = binding;
+    if (methodChannel != null) {
+      methodChannel.setMethodCallHandler(this);
+    }
   }
 
   @Override
   public void onDetachedFromEngine(FlutterPluginBinding binding) {
     pluginBinding = null;
+    if (methodChannel != null) {
+      methodChannel.setMethodCallHandler(null);
+    }
   }
 
   // ActivityAware
@@ -192,7 +209,30 @@ public class GoogleMapsPlugin
     state.set(DESTROYED);
   }
 
-  private GoogleMapsPlugin(Activity activity) {
+  private GoogleMapsPlugin(Activity activity, BinaryMessenger messenger) {
     this.registrarActivityHashCode = activity.hashCode();
+    this.fragmentManager = activity.getFragmentManager();
+    this.methodChannel = new MethodChannel(messenger, "flutter.io/googleMapsPluginUtils");
+  }
+
+  @Override
+  public void onMethodCall(MethodCall call, final MethodChannel.Result result) {
+    switch (call.method) {
+      case "warmUp":
+        final MapFragment mapFragment = new MapFragment();
+        fragmentManager.beginTransaction().add(mapFragment, "DummyMap").commit();
+        mapFragment.getMapAsync(
+            new OnMapReadyCallback() {
+              @Override
+              public void onMapReady(GoogleMap googleMap) {
+                fragmentManager.beginTransaction().remove(mapFragment).commit();
+                result.success(null);
+              }
+            });
+        break;
+      default:
+        result.notImplemented();
+        break;
+    }
   }
 }

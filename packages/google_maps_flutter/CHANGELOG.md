@@ -1,6 +1,10 @@
-## 0.5.23
+## 0.5.24
 
 * Android: Add liteModeEnabled option.
+
+## 0.5.22
+
+* Android: Add dummy map initialization
 
 ## 0.5.22
 
